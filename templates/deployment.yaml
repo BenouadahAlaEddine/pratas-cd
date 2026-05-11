@@ -3,7 +3,7 @@
 ---
 apiVersion: apps/v1
 kind: Deployment
-meta
+metadata:
   name: {{ $.Release.Name }}-{{ $serviceName }}
   labels:
     app: {{ $.Release.Name }}
@@ -28,5 +28,6 @@ spec:
             - containerPort: {{ $serviceValues.port }}
           resources:
             {{- toYaml $.Values.resources | nindent 12 }}
+{{- end }}
 {{- end }}
 {{- end }}

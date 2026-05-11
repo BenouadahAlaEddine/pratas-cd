@@ -3,7 +3,7 @@
 ---
 apiVersion: v1
 kind: Service
-meta
+metadata:
   name: {{ $.Release.Name }}-{{ $serviceName }}
 spec:
   type: ClusterIP
@@ -14,5 +14,6 @@ spec:
     - protocol: TCP
       port: {{ $serviceValues.port }}
       targetPort: {{ $serviceValues.port }}
+{{- end }}
 {{- end }}
 {{- end }}
