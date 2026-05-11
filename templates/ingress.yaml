@@ -1,12 +1,11 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
-meta
+metadata:
   name: {{ .Release.Name }}-ingress
   annotations:
     kubernetes.io/ingress.class: traefik
 spec:
   rules:
-    # Frontend accessible à la racine http://<IP>
     - http:
         paths:
           - path: /
@@ -16,8 +15,6 @@ spec:
                 name: {{ .Release.Name }}-frontend
                 port:
                   number: {{ .Values.frontend.port }}
-    
-    # API Gateway accessible via http://<IP>/api
     - http:
         paths:
           - path: /api
