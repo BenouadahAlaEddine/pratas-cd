@@ -1,19 +1,18 @@
-{{- range $serviceName, $serviceValues := .Values }}
-{{- if and (ne $serviceName "global") (ne $serviceName "replicaCount") (ne $serviceName "resources") }}
+{{- range $key, $value := .Values }}
+{{- if and (ne $key "global") (ne $key "replicaCount") (ne $key "resources") }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $.Release.Name }}-{{ $serviceName }}
+  name: {{ $.Release.Name }}-{{ $key }}
 spec:
   type: ClusterIP
   selector:
     app: {{ $.Release.Name }}
-    component: {{ $serviceName }}
+    component: {{ $key }}
   ports:
     - protocol: TCP
-      port: {{ $serviceValues.port }}
-      targetPort: {{ $serviceValues.port }}
-{{- end }}
+      port: {{ $value.port }}
+      targetPort: {{ $value.port }}
 {{- end }}
 {{- end }}

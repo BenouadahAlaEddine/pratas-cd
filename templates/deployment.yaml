@@ -1,33 +1,32 @@
-{{- range $serviceName, $serviceValues := .Values }}
-{{- if and (ne $serviceName "global") (ne $serviceName "replicaCount") (ne $serviceName "resources") }}
+{{- range $key, $value := .Values }}
+{{- if and (ne $key "global") (ne $key "replicaCount") (ne $key "resources") }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ $.Release.Name }}-{{ $serviceName }}
+  name: {{ $.Release.Name }}-{{ $key }}
   labels:
     app: {{ $.Release.Name }}
-    component: {{ $serviceName }}
+    component: {{ $key }}
 spec:
   replicas: {{ $.Values.replicaCount }}
   selector:
     matchLabels:
       app: {{ $.Release.Name }}
-      component: {{ $serviceName }}
+      component: {{ $key }}
   template:
     metadata:
       labels:
         app: {{ $.Release.Name }}
-        component: {{ $serviceName }}
+        component: {{ $key }}
     spec:
       containers:
-        - name: {{ $serviceName }}
-          image: "{{ $.Values.global.imageRegistry }}/{{ $serviceValues.image.repository }}:{{ $serviceValues.image.tag }}"
+        - name: {{ $key }}
+          image: "{{ $.Values.global.imageRegistry }}/{{ $value.image.repository }}:{{ $value.image.tag }}"
           imagePullPolicy: Always
           ports:
-            - containerPort: {{ $serviceValues.port }}
+            - containerPort: {{ $value.port }}
           resources:
             {{- toYaml $.Values.resources | nindent 12 }}
-{{- end }}
 {{- end }}
 {{- end }}
