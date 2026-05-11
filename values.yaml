@@ -1,0 +1,55 @@
+global:
+  imageRegistry: "docker.io/aladin78"
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# Configuration des services
+gateway:
+  image:
+    repository: "gateway"
+    tag: "latest"
+  port: 3000
+
+auth:
+  image:
+    repository: "auth"
+    tag: "latest"
+  port: 3001
+
+products:
+  image:
+    repository: "products"
+    tag: "latest"
+  port: 3002
+
+orders:
+  image:
+    repository: "orders"
+    tag: "latest"
+  port: 3003
+
+payments:
+  image:
+    repository: "payments"
+    tag: "latest"
+  port: 3004
+
+notifications:
+  image:
+    repository: "notifications"
+    tag: "latest"
+  port: 3005
+
+frontend:
+  image:
+    repository: "frontend"
+    tag: "latest"
+  port: 80
