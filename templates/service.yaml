@@ -1,0 +1,18 @@
+{{- range $serviceName, $serviceValues := .Values }}
+{{- if and (ne $serviceName "global") (ne $serviceName "replicaCount") (ne $serviceName "resources") }}
+---
+apiVersion: v1
+kind: Service
+meta
+  name: {{ $.Release.Name }}-{{ $serviceName }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ $.Release.Name }}
+    component: {{ $serviceName }}
+  ports:
+    - protocol: TCP
+      port: {{ $serviceValues.port }}
+      targetPort: {{ $serviceValues.port }}
+{{- end }}
+{{- end }}
