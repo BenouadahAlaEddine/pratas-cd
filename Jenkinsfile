@@ -42,26 +42,28 @@ pipeline {
         stage('🚀 Helm Deploy') {
             steps {
                 script {
-                    def valuesFile = params.ENVIRONMENT == 'production' ? 'values-prod.yaml' : 'values.yaml'
-                    
-                    // Construction des arguments pour mettre à jour tous les tags d'images
-                    def services = ['gateway', 'auth', 'products', 'orders', 'payments', 'notifications', 'frontend']
-                    def setArgs = ""
-                    services.each { svc ->
-                        setArgs += " --set ${svc}.image.tag=${params.IMAGE_TAG}"
-                    }
+                    withCredentials([file(credentialsId: env.KUBECONFIG_CREDS, variable: 'KUBECONFIG_FILE')]) {
+                        def valuesFile = params.ENVIRONMENT == 'production' ? 'values-prod.yaml' : 'values.yaml'
+                        
+                        def services = ['gateway', 'auth', 'products', 'orders', 'payments', 'notifications', 'frontend']
+                        def setArgs = ""
+                        services.each { svc ->
+                            setArgs += " --set ${svc}.image.tag=${params.IMAGE_TAG}"
+                        }
 
-                    sh """
-                        helm upgrade --install ${env.HELM_RELEASE} . \\
-                            --namespace ${env.K8S_NAMESPACE} \\
-                            --create-namespace \\
-                            -f ${valuesFile} \\
-                            --set global.imageRegistry="docker.io/aladin78" \\
-                            ${setArgs} \\
-                            --wait \\
-                            --timeout 5m \\
-                            --atomic
-                    """
+                        sh """
+                            helm upgrade --install ${env.HELM_RELEASE} . \\
+                                --kubeconfig \$KUBECONFIG_FILE \\
+                                --namespace ${env.K8S_NAMESPACE} \\
+                                --create-namespace \\
+                                -f ${valuesFile} \\
+                                --set global.imageRegistry="docker.io/aladin78" \\
+                                ${setArgs} \\
+                                --wait \\
+                                --timeout 5m \\
+                                --atomic
+                        """
+                    }
                 }
             }
         }
