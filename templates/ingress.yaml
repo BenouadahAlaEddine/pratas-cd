@@ -8,15 +8,7 @@ spec:
   rules:
     - http:
         paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ .Release.Name }}-frontend
-                port:
-                  number: {{ .Values.frontend.port }}
-    - http:
-        paths:
+          # IMPORTANT : /api avant / sinon tout est capturé par le frontend
           - path: /api
             pathType: Prefix
             backend:
@@ -24,3 +16,10 @@ spec:
                 name: {{ .Release.Name }}-gateway
                 port:
                   number: {{ .Values.gateway.port }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-frontend
+                port:
+                  number: {{ .Values.frontend.port }}

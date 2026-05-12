@@ -1,6 +1,5 @@
 {{- range $key, $value := .Values }}
-{{- if and (ne $key "global") (ne $key "replicaCount") (ne $key "resources") }}
----
+{{- if and (ne $key "global") (ne $key "replicaCount") (ne $key "resources") (ne $key "ingress") }}---
 apiVersion: v1
 kind: Service
 metadata:
