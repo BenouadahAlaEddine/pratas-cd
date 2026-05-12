@@ -10,9 +10,10 @@ resources:
   requests:
     cpu: 200m
     memory: 256Mi
+
 ingress:
   enabled: true
-# Configuration des services
+
 gateway:
   image:
     repository: "gateway"
