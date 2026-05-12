@@ -2,63 +2,56 @@ pipeline {
     agent any
 
     environment {
-        HELM_REPO_URL    = 'https://github.com/BenouadahAlaEddine/pratas-cd.git' // Ton repo Helm
+        HELM_REPO_URL    = 'https://github.com/BenouadahAlaEddine/pratas-cd.git'
         K8S_NAMESPACE    = 'pratas'
         HELM_RELEASE     = 'pratas-app'
         KUBECONFIG_CREDS = 'k8s-kubeconfig'
     }
 
     parameters {
-        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Tag de l\'image à déployer (ex: 15-a1b2c3d)')
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Tag de l\'image à déployer')
         choice(name: 'ENVIRONMENT', choices: ['staging', 'production'], description: 'Environnement cible')
     }
 
     stages {
-        // ── Stage 1: Checkout Helm Charts ─────────────────────────────────────
         stage('📥 Checkout Helm Repo') {
             steps {
-                git branch: 'main', 
-                    url: "${env.HELM_REPO_URL}", 
-                    credentialsId: 'gitlab-credentials' // Ou github-credentials
+                git branch: 'main',
+                    url: "${env.HELM_REPO_URL}",
+                    credentialsId: 'gitlab-credentials'
             }
         }
 
-        // ── Stage 2: Configure Kubectl ────────────────────────────────────────
         stage('⚙️ Setup Kubeconfig') {
             steps {
-                script {
-                    withCredentials([file(credentialsId: env.KUBECONFIG_CREDS, variable: 'KUBECONFIG_FILE')]) {
-                        sh '''
-                            mkdir -p $HOME/.kube
-                            cp $KUBECONFIG_FILE $HOME/.kube/config
-                            chmod 600 $HOME/.kube/config
-                        '''
-                    }
+                withCredentials([file(credentialsId: env.KUBECONFIG_CREDS, variable: 'KUBECONFIG_FILE')]) {
+                    sh '''
+                        mkdir -p /var/lib/jenkins/.kube
+                        cp $KUBECONFIG_FILE /var/lib/jenkins/.kube/config
+                        chmod 600 /var/lib/jenkins/.kube/config
+                    '''
                 }
             }
         }
 
-        // ── Stage 3: Deploy with Helm ─────────────────────────────────────────
         stage('🚀 Helm Deploy') {
             steps {
                 script {
                     def valuesFile = params.ENVIRONMENT == 'production' ? 'values-prod.yaml' : 'values.yaml'
-                    
                     def services = ['gateway', 'auth', 'products', 'orders', 'payments', 'notifications', 'frontend']
-                    def setArgs = ""
-                    services.each { svc ->
-                        setArgs += " --set ${svc}.image.tag=${params.IMAGE_TAG}"
-                    }
+                    def setArgs = services.collect { svc ->
+                        "--set ${svc}.image.tag=${params.IMAGE_TAG}"
+                    }.join(" \\\n                            ")
 
                     sh """
-                        export KUBECONFIG=\$HOME/.kube/config
+                        export KUBECONFIG=/var/lib/jenkins/.kube/config
                         helm upgrade --install ${env.HELM_RELEASE} . \\
-                            --kubeconfig \$KUBECONFIG \\
+                            --kubeconfig /var/lib/jenkins/.kube/config \\
                             --insecure-skip-tls-verify \\
                             --namespace ${env.K8S_NAMESPACE} \\
                             --create-namespace \\
                             -f ${valuesFile} \\
-                            --set global.imageRegistry="docker.io/aladin78" \\
+                            --set global.imageRegistry=docker.io/aladin78 \\
                             ${setArgs} \\
                             --wait \\
                             --timeout 5m \\
@@ -68,11 +61,28 @@ pipeline {
             }
         }
 
-        // ── Stage 4: Verify Deployment ────────────────────────────────────────
         stage('✅ Verify') {
             steps {
-                sh "kubectl rollout status deployment/${env.HELM_RELEASE}-gateway -n ${env.K8S_NAMESPACE} --timeout=3m"
-                sh "kubectl get pods -n ${env.K8S_NAMESPACE}"
+                sh """
+                    export KUBECONFIG=/var/lib/jenkins/.kube/config
+
+                    # Lister les vrais noms de deployments
+                    echo "=== Deployments dans ${env.K8S_NAMESPACE} ==="
+                    kubectl get deployments -n ${env.K8S_NAMESPACE}
+
+                    # Rollout status sur tous les deployments du release
+                    for dep in \$(kubectl get deployments -n ${env.K8S_NAMESPACE} \
+                        -l app=${env.HELM_RELEASE} \
+                        -o jsonpath='{.items[*].metadata.name}'); do
+                        echo "Checking rollout: \$dep"
+                        kubectl rollout status deployment/\$dep \
+                            -n ${env.K8S_NAMESPACE} --timeout=3m
+                    done
+
+                    # Status final des pods
+                    echo "=== Pods ==="
+                    kubectl get pods -n ${env.K8S_NAMESPACE}
+                """
             }
         }
     }
@@ -82,7 +92,15 @@ pipeline {
             echo "✅ Déploiement réussi sur ${params.ENVIRONMENT} avec le tag ${params.IMAGE_TAG}"
         }
         failure {
-            echo "❌ Échec du déploiement."
+            sh """
+                export KUBECONFIG=/var/lib/jenkins/.kube/config
+                echo "=== Pods en échec ==="
+                kubectl get pods -n ${env.K8S_NAMESPACE}
+                echo "=== Events ==="
+                kubectl get events -n ${env.K8S_NAMESPACE} \
+                    --sort-by='.lastTimestamp' | tail -20
+            """
+            echo "❌ Échec du déploiement sur ${params.ENVIRONMENT}"
         }
     }
 }
