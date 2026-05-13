@@ -19,6 +19,12 @@ gateway:
     repository: "gateway"
     tag: "latest"
   port: 3000
+  env:
+    AUTH_SERVICE_URL: "http://pratas-app-auth:3001"
+    PRODUCTS_SERVICE_URL: "http://pratas-app-products:3002"
+    ORDERS_SERVICE_URL: "http://pratas-app-orders:3003"
+    PAYMENTS_SERVICE_URL: "http://pratas-app-payments:3004"
+    NOTIFICATIONS_SERVICE_URL: "http://pratas-app-notifications:3005"
 
 auth:
   image:

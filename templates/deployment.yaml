@@ -20,18 +20,22 @@ spec:
         app: {{ $.Release.Name }}
         component: {{ $key }}
     spec:
-      {{- if eq $key "frontend" }}
-      hostAliases:
-        - ip: "10.43.43.228"
-          hostnames:
-            - "gateway"
-      {{- end }}
       containers:
         - name: {{ $key }}
           image: "{{ $.Values.global.imageRegistry }}/{{ $value.image.repository }}:{{ $value.image.tag }}"
           imagePullPolicy: Always
           ports:
             - containerPort: {{ $value.port }}
+          
+          # Injection des variables d'environnement si définies dans values.yaml
+          {{- if $value.env }}
+          env:
+            {{- range $envName, $envValue := $value.env }}
+            - name: {{ $envName }}
+              value: "{{ $envValue }}"
+            {{- end }}
+          {{- end }}
+
           resources:
             {{- toYaml $.Values.resources | nindent 12 }}
 {{- end }}
